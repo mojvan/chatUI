@@ -1,0 +1,336 @@
+/* ChatGPTStyle.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+    background: #343541;
+  }
+  
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #343541;
+    color: #ececf1;
+  }
+  
+  /* هدر */
+  .chat-header {
+    background: #202123;
+    border-bottom: 1px solid #4d4d4f;
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .logo svg {
+    color: #10a37f;
+  }
+  
+  .logo h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #10a37f, #1a7f64);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .icon-btn {
+    background: transparent;
+    border: none;
+    color: #ececf1;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .icon-btn:hover {
+    background: #2a2b32;
+  }
+  
+  /* منطقه پیام‌ها */
+  .messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+  
+  .messages-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  .message-wrapper {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.3s ease-out;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .user-message {
+    flex-direction: row-reverse;
+  }
+  
+  .user-message .message-content {
+    align-items: flex-end;
+  }
+  
+  .user-message .message-bubble {
+    background: #10a37f;
+    color: white;
+    border-radius: 18px 18px 4px 18px;
+  }
+  
+  .bot-message .message-bubble {
+    background: #444654;
+    color: #ececf1;
+    border-radius: 18px 18px 18px 4px;
+  }
+  
+  .message-avatar {
+    flex-shrink: 0;
+  }
+  
+  .bot-avatar, .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  
+  .bot-avatar {
+    background: #10a37f;
+  }
+  
+  .user-avatar {
+    background: #5436da;
+  }
+  
+  .message-content {
+    flex: 0 1 auto; /* به جای flex: 1 */
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 85%; /* حباب حداکثر 85% عرض رو بگیره */
+  }
+  
+  .bot-message .message-content {
+    align-items: flex-start;
+  }
+  
+  .user-message .message-content {
+    align-items: flex-end;
+  }
+  
+  .message-bubble {
+    padding: 12px 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-size: 0.95rem;
+    width: fit-content; /* این کلید حل مشکل است */
+    max-width: 100%;
+  }
+  
+  .bot-message .message-bubble {
+    background: #444654;
+    color: #ececf1;
+    border-radius: 18px 18px 18px 4px;
+  }
+  
+  .user-message .message-bubble {
+    background: #10a37f;
+    color: white;
+    border-radius: 18px 18px 4px 18px;
+  }
+  
+  .message-time {
+    font-size: 0.7rem;
+    color: #8e8ea0;
+    margin: 0 8px;
+  }
+  
+  /* تایپینگ ایندیکاتور */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: #444654;
+    border-radius: 18px;
+    width: fit-content;
+  }
+  
+  .typing-indicator span {
+    width: 8px;
+    height: 8px;
+    background: #ececf1;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+  }
+  
+  .typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  .typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  
+  @keyframes typing {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-10px);
+      opacity: 1;
+    }
+  }
+  
+  /* ناحیه ورودی */
+  .input-area {
+    background: #202123;
+    border-top: 1px solid #4d4d4f;
+    padding: 16px 20px;
+  }
+  
+  .input-container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    gap: 12px;
+    background: #40414f;
+    border-radius: 12px;
+    padding: 8px 16px;
+    align-items: flex-end;
+    transition: all 0.2s;
+  }
+  
+  .input-container:focus-within {
+    box-shadow: 0 0 0 2px #10a37f;
+  }
+  
+  textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ececf1;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: none;
+    outline: none;
+    padding: 8px 0;
+    max-height: 200px;
+    line-height: 1.5;
+  }
+  
+  textarea::placeholder {
+    color: #8e8ea0;
+  }
+  
+  .send-button {
+    background: #10a37f;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  
+  .send-button:hover:not(:disabled) {
+    background: #1a7f64;
+    transform: scale(1.05);
+  }
+  
+  .send-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* اسکرول بار سفارشی */
+  .messages-area::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .messages-area::-webkit-scrollbar-track {
+    background: #202123;
+  }
+  
+  .messages-area::-webkit-scrollbar-thumb {
+    background: #4d4d4f;
+    border-radius: 4px;
+  }
+  
+  .messages-area::-webkit-scrollbar-thumb:hover {
+    background: #6b6c7e;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .messages-container {
+      padding: 0 12px;
+    }
+    
+    .message-bubble {
+      font-size: 0.85rem;
+      padding: 10px 12px;
+    }
+    
+    .bot-avatar, .user-avatar {
+      width: 30px;
+      height: 30px;
+      font-size: 16px;
+    }
+  }
