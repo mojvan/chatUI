@@ -59,7 +59,7 @@ const App = () => {
     }, 1000);
   };
 
-  const getBotResponse = (message) => {
+ /* const getBotResponse = (message) => {
     // اینجا می‌تونی به API واقعی مثل OpenAI وصل کنی
     const responses = {
       "سلام": "سلام! چطور می‌توانم کمکتان کنم؟",
@@ -72,25 +72,70 @@ const App = () => {
     }
     return "سوال خوبی پرسیدید! در حال یادگیری هستم. سوال دیگه‌ای دارید؟";
   };
-
-  /*
-  const getBotResponse = async (message) => {
+*/
+  
+const getBotResponse = async (userMessage, chatHistory) => {
+  const API_KEY = 'YOUR_API_KEY';
+  
+  // ایمن‌سازی chatHistory
+  const safeChatHistory = Array.isArray(chatHistory) ? chatHistory : [];
+  const lastMessages = safeChatHistory.slice(-10);
+  
   try {
-    const response = await fetch('YOUR_API_URL', {
+    // استفاده از آدرس جدید و اندپوینت صحیح
+    const response = await fetch('https://api.avalapis.ir/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_API_KEY'
+        'Authorization': `Bearer ${API_KEY}`
       },
-      body: JSON.stringify({ message })
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: "system", content: "شما یک دستیار مفید و خوش‌برخورد هستید." },
+          ...lastMessages,
+          { role: "user", content: userMessage }
+        ]
+      })
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`HTTP Error ${response.status}:`, errorText);
+      return `خطای سرور: ${response.status} - لطفاً بعداً تلاش کنید.`;
+    }
+
     const data = await response.json();
-    return data.reply;
+    console.log('Full API Response:', JSON.stringify(data, null, 2));
+    
+    // بررسی ساختار پاسخ (مطابق با استاندارد OpenAI)
+    if (data && data.choices && Array.isArray(data.choices) && data.choices[0]) {
+      const message = data.choices[0].message;
+      if (message && message.content) {
+        return message.content;
+      }
+    }
+    
+    // اگر ساختار متفاوت بود (بعضی APIها مستقیم پاسخ می‌دهند)
+    if (data && data.response) {
+      return data.response;
+    }
+    if (data && data.output) {
+      return data.output;
+    }
+    if (data && data.message) {
+      return data.message;
+    }
+    
+    console.error('Unexpected API response structure:', data);
+    return 'پاسخ دریافتی ساختار نامعتبری دارد.';
+    
   } catch (error) {
-    return "متاسفانه خطایی رخ داده. لطفاً دوباره تلاش کنید.";
+    console.error('Network or parsing error:', error);
+    return 'خطا در ارتباط با سرور. لطفاً اتصال اینترنت خود را بررسی کنید.';
   }
 };
-*/
+
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
