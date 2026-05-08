@@ -1,21 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import './ChatGPTStyle.css'; // فایل CSS جدید که می‌سازیم
+import './ChatGPTStyle.css';
 
 const App = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "سلام! چطور می‌توانم به شما کمک کنم؟",
+      text: "سلام! من می‌توانم متن انگلیسی را خلاصه کرده و به فارسی ترجمه کنم. همچنین حافظه دارم و متن‌های قبلی را به یاد می‌سپارم. متن خود را ارسال کنید.",
       sender: "bot",
       timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [conversationMemory, setConversationMemory] = useState([]); // حافظه مکالمه
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // اسکرول خودکار به آخرین پیام
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -24,13 +24,77 @@ const App = () => {
     scrollToBottom();
   }, [messages]);
 
-  // تغییر خودکار ارتفاع textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + "px";
     }
   }, [inputValue]);
+
+  // تابع خلاصه‌سازی و ترجمه متن
+  const summarizeAndTranslate = async (userMessage, memory) => {
+    const API_KEY = 'aa-EbnEbrAOIsPrPUHOps0yUNHRhXtZDuvEL6TX4sVfNOlwmKa0';
+    
+    // ساخت پرامپت با حافظه
+    const systemPrompt = `شما یک دستیار هوشمند هستید که دو کار اصلی انجام می‌دهد:
+1. متن انگلیسی کاربر را خلاصه می‌کنید (فقط نکات کلیدی در 2-3 جمله)
+2. سپس خلاصه فارسی را به انگلیسی ترجمه می‌کنید
+
+نکات مهم:
+- اگر کاربر درخواست ترجمه پیام قبلی را دارد، از حافظه استفاده کنید
+- حافظه مکالمه شامل تمام متن‌های ارسال شده قبلی است
+- فرمت پاسخ شما باید دقیقاً به این شکل باشد:
+📝 **خلاصه فارسی:** [متن خلاصه شده به فارسی]
+🌐 **English Summary:** [همان خلاصه به انگلیسی]
+
+اگر کاربر سوال دیگری پرسید یا درخواست خاصی داشت، ابتدا به آن پاسخ دهید سپس خلاصه‌سازی را انجام دهید.
+
+حافظه مکالمه فعلی: ${memory.length > 0 ? memory.map(m => `- ${m}`).join('\n') : 'هیچ متن قبلی وجود ندارد'}`;
+
+    try {
+      const response = await fetch('https://api.avalapis.ir/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+          ],
+          temperature: 0.7,
+          max_tokens: 500
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP Error ${response.status}:`, errorText);
+        return `❌ خطای سرور: ${response.status}. لطفاً بعداً تلاش کنید.`;
+      }
+
+      const data = await response.json();
+      
+      if (data && data.choices && data.choices[0] && data.choices[0].message) {
+        const botResponse = data.choices[0].message.content;
+        
+        // ذخیره متن کاربر در حافظه (فقط متن اصلی، نه پاسخ ربات)
+        if (userMessage.length > 10 && !userMessage.includes('ترجمه پیام قبلی') && !userMessage.includes('previous message')) {
+          setConversationMemory(prev => [...prev, userMessage]);
+        }
+        
+        return botResponse;
+      }
+      
+      return 'خطا در پردازش درخواست. لطفاً دوباره تلاش کنید.';
+      
+    } catch (error) {
+      console.error('Network error:', error);
+      return '❌ خطا در ارتباط با سرور. لطفاً اتصال اینترنت خود را بررسی کنید.';
+    }
+  };
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
@@ -43,99 +107,34 @@ const App = () => {
       timestamp: new Date()
     };
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue("");
     setIsTyping(true);
 
-    // شبیه‌سازی پاسخ ربات (بعداً به API واقعی وصل کن)
-    setTimeout(() => {
-      const botMessage = {
-        id: Date.now() + 1,
-        text: getBotResponse(inputValue),
-        sender: "bot",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
-      setIsTyping(false);
-    }, 1000);
-  };
-
- /* const getBotResponse = (message) => {
-    // اینجا می‌تونی به API واقعی مثل OpenAI وصل کنی
-    const responses = {
-      "سلام": "سلام! چطور می‌توانم کمکتان کنم؟",
-      "چطوری": "خوبم ممنون! شما چطورید؟",
-      "خداحافظ": "خداحافظ! روز خوبی داشته باشید.",
+    // دریافت پاسخ با حافظه
+    const botResponseText = await summarizeAndTranslate(currentInput, conversationMemory);
+    
+    const botMessage = {
+      id: Date.now() + 1,
+      text: botResponseText,
+      sender: "bot",
+      timestamp: new Date()
     };
-    
-    for (const [key, value] of Object.entries(responses)) {
-      if (message.includes(key)) return value;
-    }
-    return "سوال خوبی پرسیدید! در حال یادگیری هستم. سوال دیگه‌ای دارید؟";
+    setMessages(prev => [...prev, botMessage]);
+    setIsTyping(false);
   };
-*/
-  
-const getBotResponse = async (userMessage, chatHistory) => {
-  const API_KEY = 'YOUR_API_KEY';
-  
-  // ایمن‌سازی chatHistory
-  const safeChatHistory = Array.isArray(chatHistory) ? chatHistory : [];
-  const lastMessages = safeChatHistory.slice(-10);
-  
-  try {
-    // استفاده از آدرس جدید و اندپوینت صحیح
-    const response = await fetch('https://api.avalapis.ir/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: "system", content: "شما یک دستیار مفید و خوش‌برخورد هستید." },
-          ...lastMessages,
-          { role: "user", content: userMessage }
-        ]
-      })
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`HTTP Error ${response.status}:`, errorText);
-      return `خطای سرور: ${response.status} - لطفاً بعداً تلاش کنید.`;
-    }
-
-    const data = await response.json();
-    console.log('Full API Response:', JSON.stringify(data, null, 2));
-    
-    // بررسی ساختار پاسخ (مطابق با استاندارد OpenAI)
-    if (data && data.choices && Array.isArray(data.choices) && data.choices[0]) {
-      const message = data.choices[0].message;
-      if (message && message.content) {
-        return message.content;
-      }
-    }
-    
-    // اگر ساختار متفاوت بود (بعضی APIها مستقیم پاسخ می‌دهند)
-    if (data && data.response) {
-      return data.response;
-    }
-    if (data && data.output) {
-      return data.output;
-    }
-    if (data && data.message) {
-      return data.message;
-    }
-    
-    console.error('Unexpected API response structure:', data);
-    return 'پاسخ دریافتی ساختار نامعتبری دارد.';
-    
-  } catch (error) {
-    console.error('Network or parsing error:', error);
-    return 'خطا در ارتباط با سرور. لطفاً اتصال اینترنت خود را بررسی کنید.';
-  }
-};
-
+  // تابع پاک کردن حافظه
+  const clearMemory = () => {
+    setConversationMemory([]);
+    const memoryClearedMessage = {
+      id: Date.now(),
+      text: "🧹 حافظه مکالمه پاک شد. می‌توانید متن‌های جدید را ارسال کنید.",
+      sender: "bot",
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, memoryClearedMessage]);
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -150,7 +149,7 @@ const getBotResponse = async (userMessage, chatHistory) => {
 
   return (
     <div className="chat-container">
-      {/* هدر شبیه ChatGPT */}
+      {/* هدر */}
       <div className="chat-header">
         <div className="header-content">
           <div className="logo">
@@ -159,22 +158,39 @@ const getBotResponse = async (userMessage, chatHistory) => {
               <path d="M2 16L16 23L30 16" stroke="currentColor" strokeWidth="2" fill="none"/>
               <path d="M2 23L16 30L30 23" stroke="currentColor" strokeWidth="2" fill="none"/>
             </svg>
-            <h1>ChatGPT Clone</h1>
+            <h1>خلاصه‌ساز و مترجم هوشمند</h1>
           </div>
           <div className="header-actions">
-            <button className="icon-btn" title="موضوع جدید">
+            <button className="icon-btn" onClick={clearMemory} title="پاک کردن حافظه">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2"/>
+                <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
-            <button className="icon-btn" title="تنظیمات">
+            <button className="icon-btn" title="اطلاعات">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-                <path d="M19.4 15.05L18.3 15.9C17.9 16.2 17.8 16.8 18 17.3L18.5 18.6C18.8 19.4 18.2 20.2 17.4 20.2H15.9C15.4 20.2 14.9 20.5 14.7 21L14.3 22.2C14.1 23 13.3 23.5 12.5 23.5H11.5C10.7 23.5 9.9 23 9.7 22.2L9.3 21C9.1 20.5 8.6 20.2 8.1 20.2H6.6C5.8 20.2 5.2 19.4 5.5 18.6L6 17.3C6.2 16.8 6.1 16.2 5.7 15.9L4.6 15.05C3.9 14.5 3.9 13.5 4.6 12.95L5.7 12.1C6.1 11.8 6.2 11.2 6 10.7L5.5 9.4C5.2 8.6 5.8 7.8 6.6 7.8H8.1C8.6 7.8 9.1 7.5 9.3 7L9.7 5.8C9.9 5 10.7 4.5 11.5 4.5H12.5C13.3 4.5 14.1 5 14.3 5.8L14.7 7C14.9 7.5 15.4 7.8 15.9 7.8H17.4C18.2 7.8 18.8 8.6 18.5 9.4L18 10.7C17.8 11.2 17.9 11.8 18.3 12.1L19.4 12.95C20.1 13.5 20.1 14.5 19.4 15.05Z" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                <path d="M12 16V12M12 8H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
           </div>
         </div>
+      </div>
+
+      {/* نمایش تعداد متن‌های ذخیره شده در حافظه */}
+      <div className="memory-badge" style={{
+        position: 'sticky',
+        top: '70px',
+        zIndex: 10,
+        textAlign: 'center',
+        margin: '10px auto',
+        padding: '5px 15px',
+        backgroundColor: '#2c2c2e',
+        borderRadius: '20px',
+        width: 'fit-content',
+        fontSize: '12px',
+        color: '#aaa'
+      }}>
+        📚 حافظه: {conversationMemory.length} متن ذخیره شده
       </div>
 
       {/* منطقه پیام‌ها */}
@@ -193,7 +209,10 @@ const getBotResponse = async (userMessage, chatHistory) => {
                 )}
               </div>
               <div className="message-content">
-                <div className="message-bubble">
+                <div className="message-bubble" style={{
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: 1.6
+                }}>
                   {message.text}
                 </div>
                 <div className="message-time">
@@ -203,7 +222,6 @@ const getBotResponse = async (userMessage, chatHistory) => {
             </div>
           ))}
           
-          {/* تایپینگ ایندیکاتور */}
           {isTyping && (
             <div className="message-wrapper bot-message">
               <div className="message-avatar">
@@ -215,6 +233,7 @@ const getBotResponse = async (userMessage, chatHistory) => {
                   <span></span>
                   <span></span>
                 </div>
+                <div className="message-time">در حال پردازش...</div>
               </div>
             </div>
           )}
@@ -230,7 +249,7 @@ const getBotResponse = async (userMessage, chatHistory) => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="پیام خود را بنویسید... (Enter برای ارسال، Shift+Enter برای خط جدید)"
+            placeholder="متن انگلیسی خود را وارد کنید... (Enter برای ارسال، Shift+Enter برای خط جدید)"
             rows={1}
           />
           <button 
@@ -242,6 +261,9 @@ const getBotResponse = async (userMessage, chatHistory) => {
               <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
+        </div>
+        <div style={{ fontSize: '11px', textAlign: 'center', marginTop: '8px', color: '#666' }}>
+          💡 نکته: می‌توانید بپرسید "پیام قبلی را ترجمه کن" و ربات از حافظه استفاده می‌کند
         </div>
       </div>
     </div>
